@@ -2,7 +2,7 @@
 #define OPHIDIAN_ENTITY_SYSTEM_PROPERTY_H
 
 #include <vector>
-#include "system.h"
+#include "entity_system.h"
 namespace ophidian {
 namespace entity_system {
 
@@ -10,8 +10,9 @@ namespace entity_system {
 class abstract_property {
 
 public:
-    virtual void create(system::entity en) = 0;
-    virtual void destroy(system::entity en) = 0;
+    virtual void resize(std::size_t new_size) = 0;
+    virtual void create(entity_system::entity en) = 0;
+    virtual void destroy(entity_system::entity en) = 0;
     virtual void clear() = 0;
 };
 
@@ -26,10 +27,12 @@ public:
     using ConstIteratorType = typename ContainerType::const_iterator;
 
 private:
-    const system & m_system;
+    const entity_system & m_system;
     ContainerType m_container;
+
+
 public:
-    property(const system & sys) : m_system(sys) {
+    property(const entity_system & sys) : m_system(sys) {
         sys.notifier()->attach(*this);
         m_container.resize(m_system.size());
     }
@@ -51,11 +54,11 @@ public:
     }
 
 
-    void create(system::entity en) {
+    void create(entity_system::entity en) {
         m_container.resize(m_container.size()+1);
     }
 
-    void destroy(system::entity en) {
+    void destroy(entity_system::entity en) {
         std::swap(m_container.at(m_system.lookup(en)), m_container.back());
         m_container.pop_back();
     }
@@ -64,12 +67,21 @@ public:
         m_container.clear();
     }
 
-    PropertyType operator[](entity_system::system::entity en) const {
+    void resize(std::size_t new_size) {
+        m_container.resize(new_size);
+    }
+
+
+    PropertyType operator[](entity_system::entity_system::entity en) const {
         return m_container[m_system.lookup(en)];
     }
 
-    typename ContainerType::reference operator[](entity_system::system::entity en) {
+    typename ContainerType::reference operator[](entity_system::entity_system::entity en) {
         return m_container[m_system.lookup(en)];
+    }
+
+    typename ContainerType::const_reference at(entity_system::entity_system::entity en) const {
+        return m_container.at(m_system.lookup(en));
     }
 };
 

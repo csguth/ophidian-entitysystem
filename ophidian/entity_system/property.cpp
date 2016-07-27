@@ -1,5 +1,5 @@
 #include "property.h"
-#include "system.h"
+#include "entity_system.h"
 
 namespace ophidian {
 namespace entity_system {
