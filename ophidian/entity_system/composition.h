@@ -41,6 +41,10 @@ public:
     void composite_of(entity_system::entity component, entity_system::entity composite);
     void destroy(entity_system::entity en);
 
+    bool is_attached(entity_system::entity en) const {
+        return m_composites[en] != entity_system::entity::null();
+    }
+
     void resize(std::size_t new_size) {
         m_composites.resize(new_size);
     }
@@ -75,6 +79,9 @@ public:
     void attach_component(entity_system::entity composite, entity_system::entity component);
     void dettach_component(entity_system::entity composite, entity_system::entity component);
 
+    bool is_attached(entity_system::entity component) const {
+        return m_part.is_attached(component);
+    }
 
     bounds<std::vector< entity_system::entity >::const_iterator> components_bounds(entity_system::entity composite) const
     {

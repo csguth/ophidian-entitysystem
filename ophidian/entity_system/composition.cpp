@@ -36,8 +36,7 @@ const entity_system &composition::component() const
 
 bool composition::is_component_of(entity_system::entity composite, entity_system::entity component) const
 {
-    auto& parts = m_components.at(composite);
-    return std::find(parts.begin(), parts.end(), component) != parts.end();
+    return (m_part.composite_of(component) == composite);
 }
 
 void composition::attach_component(entity_system::entity composite, entity_system::entity component)
@@ -53,6 +52,7 @@ void composition::dettach_component(entity_system::entity composite, entity_syst
     if(erased == parts.end())
         throw std::runtime_error("dettaching unattached component!!");
     parts.erase(erased , parts.end() );
+    m_part.composite_of(component, entity_system::entity::null());
 }
 
 void composition::destroy(entity_system::entity en)
@@ -97,7 +97,8 @@ void part_of::composite_of(entity_system::entity component, entity_system::entit
 
 void part_of::destroy(entity_system::entity en)
 {
-    m_composition.dettach_component(m_composites[en], en);
+    if(is_attached(en))
+        m_composition.dettach_component(m_composites[en], en);
     m_composites.destroy(en);
 }
 

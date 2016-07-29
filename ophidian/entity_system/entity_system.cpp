@@ -88,7 +88,8 @@ bool entity_system::entity::operator!=(const entity_system::entity &o) const
 
 entity_system::entity entity_system::entity::null()
 {
-    return entity();
+    static entity null_entity;
+    return null_entity;
 }
 
 void entity_system::notifier_::attach(abstract_property &prop)

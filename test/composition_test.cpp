@@ -1,4 +1,4 @@
-#include <catch.hpp>
+﻿#include <catch.hpp>
 
 #include <ophidian/entity_system/entity_system.h>
 #include <ophidian/entity_system/composition.h>
@@ -50,6 +50,7 @@ TEST_CASE("part of: destructor", "[composition][part_of]") {
     entity_system composite, component;
     composition compo(composite, component);
     const int NULL_PROPERTIES_BEFORE = 2;
+    REQUIRE( entity_system::null().properties_size() == NULL_PROPERTIES_BEFORE );
     part_of * part;
     part = new part_of(compo);
     REQUIRE( entity_system::null().properties_size() == NULL_PROPERTIES_BEFORE + 1 );
@@ -92,20 +93,30 @@ TEST_CASE_METHOD(part_whole_fixture, "composition: part-whole", "[composition]")
     REQUIRE( relation.component() == component );
 }
 
-TEST_CASE_METHOD(part_whole_fixture_with_one_part_and_one_whole_unassigned, "composition: unassigned", "[composition]") {
+TEST_CASE_METHOD(part_whole_fixture_with_one_part_and_one_whole_unassigned, "composition: unattached", "[composition]") {
     REQUIRE( !relation.is_component_of(whole, part) );
     REQUIRE( relation.components_size(whole) == 0 );
     REQUIRE( relation.composite_of(part) == entity_system::entity::null() );
+    REQUIRE( !relation.is_attached(part) );
+}
+
+TEST_CASE_METHOD(part_whole_fixture_with_one_part_and_one_whole_unassigned, "composition: destroy unattached part", "[composition]") {
+    REQUIRE_NOTHROW( component.destroy(part) );
 }
 
 TEST_CASE_METHOD(part_whole_fixture_with_one_part_and_one_whole, "composition: attach part to whole", "[composition]") {
     REQUIRE( relation.is_component_of(whole, part) );
     REQUIRE( relation.components_size(whole) == 1 );
     REQUIRE( relation.composite_of(part) == whole );
+    REQUIRE( relation.is_attached(part) );
+
 }
 
 TEST_CASE_METHOD(part_whole_fixture_with_one_part_and_one_whole, "composition: dettach part from whole", "[composition]") {
     relation.dettach_component(whole, part);
+    REQUIRE( relation.components_size(whole) == 0 );
+    REQUIRE( relation.composite_of(part) == entity_system::entity::null() );
+    REQUIRE( relation.is_component_of(entity_system::entity::null(), part) );
     REQUIRE_THROWS( relation.dettach_component(whole, part) );
 }
 
@@ -166,7 +177,7 @@ TEST_CASE_METHOD(whole_with_three_parts, "composition: clear whole system, destr
 
 TEST_CASE_METHOD(whole_with_three_parts, "composition: destroy part, remove from whole", "[composition]") {
     component.destroy(part);
-    REQUIRE( !relation.is_component_of(whole, part) );
+    REQUIRE_THROWS( relation.is_component_of(whole, part) );
     REQUIRE( relation.is_component_of(whole, part2) );
     REQUIRE( relation.is_component_of(whole, part3) );
     REQUIRE( relation.components_size(whole) == 2 );
@@ -177,9 +188,9 @@ TEST_CASE_METHOD(whole_with_three_parts, "composition: destroy part, remove from
 
 TEST_CASE_METHOD(whole_with_three_parts, "composition: clear parts, remove from wholes", "[composition]") {
     component.clear();
-    REQUIRE( !relation.is_component_of(whole, part) );
-    REQUIRE( !relation.is_component_of(whole, part2) );
-    REQUIRE( !relation.is_component_of(whole, part3) );
+    REQUIRE_THROWS( relation.is_component_of(whole, part) );
+    REQUIRE_THROWS( relation.is_component_of(whole, part2) );
+    REQUIRE_THROWS( relation.is_component_of(whole, part3) );
     REQUIRE( relation.components_size(whole) == 0 );
     REQUIRE_THROWS( relation.composite_of(part2) );
     REQUIRE_THROWS( relation.composite_of(part3) );
@@ -201,5 +212,57 @@ TEST_CASE_METHOD(whole_system_with_1_entity_and_part_system_with_4_entities, "co
     attach_component(relation, composite.entity<0>(), component.en.begin(), component.en.end());
     REQUIRE( relation.components_size(composite.entity<0>()) == 4 );
     REQUIRE( std::equal(component.en.begin(), component.en.end(), relation.components_bounds(composite.entity<0>()).begin()) );
+}
+
+struct self_composition_fixture {
+    entity_system sys;
+    composition compo{sys, sys};
+};
+
+struct self_composition_fixture_with_root : public self_composition_fixture {
+    entity_system::entity root{sys.create()};
+};
+
+struct self_composition_fixture_with_root_and_child_unattached : public self_composition_fixture_with_root {
+    entity_system::entity child{sys.create()};
+};
+
+struct self_composition_fixture_with_root_and_child : public self_composition_fixture_with_root_and_child_unattached {
+    self_composition_fixture_with_root_and_child() {
+        compo.attach_component(root, child);
+    }
+};
+
+TEST_CASE_METHOD(self_composition_fixture_with_root, "compostition: self composition", "[composition]") {
+    REQUIRE( compo.composite_of(root) == entity_system::entity::null() );
+    REQUIRE( compo.is_component_of(entity_system::entity::null(), root) );
+}
+
+TEST_CASE_METHOD(self_composition_fixture_with_root_and_child, "compostition: self composition, attach child", "[composition]") {
+    REQUIRE( compo.components_size(root) == 1 );
+    REQUIRE( compo.composite_of(root) == entity_system::entity::null() );
+    REQUIRE( compo.is_component_of(entity_system::entity::null(), root) );
+    REQUIRE( compo.is_component_of(root, child) );
+    REQUIRE( compo.components_size(child) == 0 );
+}
+
+TEST_CASE_METHOD(self_composition_fixture_with_root_and_child, "compostition: self composition, attach child, dettach child", "[composition]") {
+    compo.dettach_component(root, child);
+    REQUIRE( compo.composite_of(child) == entity_system::entity::null() );
+    REQUIRE( compo.is_component_of(entity_system::entity::null(), child));
+    REQUIRE( compo.components_size(root) == 0 );
+}
+
+TEST_CASE_METHOD(self_composition_fixture_with_root_and_child, "compostition: self composition, attach child, destroy parent", "[composition]") {
+    sys.destroy(root);
+    REQUIRE( !sys.valid(child) );
+    REQUIRE_THROWS( compo.components_size(root) );
+    REQUIRE_THROWS( compo.components_size(child) );
+}
+
+TEST_CASE_METHOD(self_composition_fixture_with_root_and_child, "compostition: self composition, attach child, destroy child", "[composition]") {
+    sys.destroy(child);
+    REQUIRE( compo.components_size(root) == 0 );
+    REQUIRE_THROWS( compo.components_size(child) );
 }
 

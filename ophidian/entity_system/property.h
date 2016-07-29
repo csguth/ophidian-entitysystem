@@ -5,10 +5,6 @@
 #include "entity_system.h"
 #include <cassert>
 
-#ifndef NDEBUG
-#include <iostream>
-#endif
-
 namespace ophidian {
 namespace entity_system {
 
@@ -26,6 +22,7 @@ public:
 class attached_property : public abstract_property {
     const entity_system * m_system;
 public:
+
     attached_property() :
         m_system(&entity_system::null()) {
         m_system->notifier()->attach(*this);
@@ -44,18 +41,14 @@ public:
     const entity_system& system() const {
         return *m_system;
     }
+
 };
-
-
-
-
-
-
 
 template <class PropertyType>
 class property : public attached_property
 {
 public:
+
     class helper {
     public:
         static property<PropertyType> make_property(const entity_system & sys) {
@@ -80,36 +73,23 @@ private:
 
     property(const entity_system & sys)
     {
-#ifndef NDEBUG
-        std::cout << "property::property(const entity_system & sys)" << std::endl;
-#endif
         init(sys);
     }
-public:
 
+public:
     property(const property & prop) :
         property(prop.system())
     {
-#ifndef NDEBUG
-        std::cout << "property::property(const property & prop)" << std::endl;
-#endif
     }
 
     property(property &&prop) {
-#ifndef NDEBUG
-        std::cout << "property::property(property &&prop)" << std::endl;
-#endif
         init(prop.system());
         prop.system().notifier()->dettach(prop);
     }
 
     property& operator=(const property& prop) {
-#ifndef NDEBUG
-        std::cout << "property::operator=(const property& prop)" << std::endl;
-#endif
         init(prop.system());
     }
-
 
     property()
     {
@@ -149,7 +129,6 @@ public:
         m_container.resize(new_size);
     }
 
-
     PropertyType operator[](entity_system::entity_system::entity en) const {
         return m_container[lookup(en)];
     }
@@ -162,14 +141,12 @@ public:
         return m_container.at(lookup(en));
     }
 
-
 };
 
 template<class PropertyType>
 property<PropertyType> make_property(const entity_system & sys) {
     return property<PropertyType>::helper::make_property(sys);
 }
-
 
 }
 }
