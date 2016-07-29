@@ -12,7 +12,9 @@ class abstract_property;
 
 class entity_system
 {
+    static const entity_system m_NULL;
 public:
+
     class entity {
 
         static const std::size_t INVALID;
@@ -49,19 +51,21 @@ public:
         void destroy(entity en);
         void clear();
 
+        std::size_t properties_size() const {
+            return m_properties.size();
+        }
+
 
     };
 
     using StorageType = std::vector<entity>;
 
+
+
 private:
 
     std::vector<std::size_t> m_id2index;
     StorageType m_entities;
-
-
-    std::set<const entity_system*> m_parts;
-
     std::unique_ptr<notifier_> m_notifier;
 public:
     entity_system();
@@ -92,6 +96,21 @@ public:
         return this == &other;
     }
 
+    StorageType::const_iterator begin() const {
+        return m_entities.begin();
+    }
+
+    StorageType::const_iterator end() const {
+        return m_entities.end();
+    }
+
+    static const entity_system& null() {
+        return entity_system::m_NULL;
+    }
+
+    std::size_t properties_size() const {
+        return m_notifier->properties_size();
+    }
 
 };
 
@@ -103,7 +122,6 @@ std::array<entity_system::entity, NumberOfElements> make_entities(entity_system&
         el = e.create();
     return elements;
 }
-
 
 }
 }

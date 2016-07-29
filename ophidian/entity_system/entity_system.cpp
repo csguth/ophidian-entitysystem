@@ -8,6 +8,8 @@ namespace entity_system {
 
 const std::size_t entity_system::entity::INVALID{std::numeric_limits<std::size_t>::max()};
 
+const entity_system entity_system::m_NULL;
+
 entity_system::entity_system() :
     m_notifier(new notifier_)
 {
@@ -55,6 +57,7 @@ void entity_system::clear()
 {
     m_notifier->clear();
     m_entities.clear();
+    std::fill(m_id2index.begin(), m_id2index.end(), entity::INVALID);
 }
 
 entity_system::entity::entity() : m_id(INVALID)
@@ -95,7 +98,9 @@ void entity_system::notifier_::attach(abstract_property &prop)
 
 void entity_system::notifier_::dettach(abstract_property &prop)
 {
-    (m_properties.erase(&prop) == 0 ? throw std::runtime_error("can't dettach unattached property") : 0);
+    std::size_t items_erased{m_properties.erase(&prop)};
+    if(!items_erased)
+        throw std::runtime_error("can't dettach unattached property");
 }
 
 void entity_system::notifier_::create(entity_system::entity en)

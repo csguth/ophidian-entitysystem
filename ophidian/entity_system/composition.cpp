@@ -14,8 +14,14 @@ composition::composition(const entity_system &composite, entity_system &componen
     m_part(*this)
 {
     composite.notifier()->dettach(m_components);
-    composite.notifier()->attach(*this);
+    entity_system::null().notifier()->attach(m_components);
+    system(composite);
     resize(composite.size());
+}
+
+composition::~composition()
+{
+    entity_system::null().notifier()->dettach(m_components);
 }
 
 const entity_system &composition::composite() const
@@ -53,11 +59,20 @@ void composition::destroy(entity_system::entity en)
 {
     auto components = m_components[en];
 
-//    std::for_each(components.begin(), components.end(), std::bind(&entity_system::destroy, &m_component, std::placeholders::_1));
     for(auto component : components)
         m_component.destroy(component);
 
     m_components.destroy(en);
+}
+
+void composition::clear()
+{
+    for(auto composite : m_composite) {
+        auto components = m_components[composite];
+        for(auto component : components)
+            m_component.destroy(component);
+    }
+    m_components.clear();
 }
 
 part_of::part_of(composition &compo) :
@@ -65,7 +80,14 @@ part_of::part_of(composition &compo) :
     m_composites(compo.component())
 {
     compo.component().notifier()->dettach(m_composites);
-    compo.component().notifier()->attach(*this);
+    entity_system::null().notifier()->attach(m_composites);
+    system(compo.component());
+    resize(compo.component().size());
+}
+
+part_of::~part_of()
+{
+    entity_system::null().notifier()->dettach(m_composites);
 }
 
 void part_of::composite_of(entity_system::entity component, entity_system::entity composite)
@@ -79,6 +101,12 @@ void part_of::destroy(entity_system::entity en)
     m_composites.destroy(en);
 }
 
+void part_of::clear()
+{
+    for(auto component : m_composition.component())
+        m_composition.dettach_component(m_composites[component], component);
+    m_composites.clear();
+}
 
 }
 }

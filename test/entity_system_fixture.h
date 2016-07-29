@@ -7,7 +7,7 @@ namespace entity_system_test {
 
 using namespace ophidian::entity_system;
 
-struct property_mock : public abstract_property {
+struct property_mock : public attached_property {
 
     void resize(std::size_t new_size) {
 
@@ -21,6 +21,8 @@ struct property_mock : public abstract_property {
 
     void clear() {
     }
+
+
 };
 
 

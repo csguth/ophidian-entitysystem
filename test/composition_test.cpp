@@ -46,6 +46,46 @@ struct whole_with_three_parts : public whole_with_two_parts {
     }
 };
 
+TEST_CASE("part of: destructor", "[composition][part_of]") {
+    entity_system composite, component;
+    composition compo(composite, component);
+    const int NULL_PROPERTIES_BEFORE = 2;
+    part_of * part;
+    part = new part_of(compo);
+    REQUIRE( entity_system::null().properties_size() == NULL_PROPERTIES_BEFORE + 1 );
+    delete part;
+    REQUIRE( entity_system::null().properties_size() == NULL_PROPERTIES_BEFORE);
+}
+
+TEST_CASE("part of: constructor", "[composition][part_of]") {
+    entity_system composite, component;
+    composition compo(composite, component);
+    const int NULL_PROPERTIES_BEFORE = 2;
+    part_of part(compo);
+    REQUIRE(&part.system() == &component);
+    REQUIRE(composite.has_property(compo));
+    REQUIRE(composite.properties_size() == 1);
+    REQUIRE(entity_system::null().properties_size() == NULL_PROPERTIES_BEFORE + 1);
+}
+
+
+TEST_CASE("composition: constructor & destructor","[composition]") {
+    entity_system composite;
+    entity_system component;
+
+    const int NULL_PROPERTIES_BEFORE = entity_system::null().properties_size();
+
+    composition * relation;
+    REQUIRE_NOTHROW(relation = new composition(composite, component));
+    // part-to-whole property, whole-to-part property
+    REQUIRE(entity_system::null().properties_size() == NULL_PROPERTIES_BEFORE + 2);
+    REQUIRE_NOTHROW(delete relation);
+
+}
+
+TEST_CASE("composition: test fixture","[composition]") {
+    REQUIRE_NOTHROW( part_whole_fixture() );
+}
 
 TEST_CASE_METHOD(part_whole_fixture, "composition: part-whole", "[composition]") {
     REQUIRE( relation.composite() == composite );
@@ -111,6 +151,18 @@ TEST_CASE_METHOD(whole_with_three_parts, "composition: destroy whole, destroy pa
     REQUIRE_THROWS( relation.composite_of(part3) );
 }
 
+TEST_CASE_METHOD(whole_with_three_parts, "composition: clear whole system, destroy parts", "[composition]") {
+    composite.clear();
+    REQUIRE( !component.valid(part) );
+    REQUIRE( !component.valid(part2) );
+    REQUIRE( !component.valid(part3) );
+    REQUIRE_THROWS( relation.components_bounds(whole) );
+    REQUIRE_THROWS( relation.components_size(whole) );
+    REQUIRE_THROWS( relation.composite_of(part) );
+    REQUIRE_THROWS( relation.composite_of(part2) );
+    REQUIRE_THROWS( relation.composite_of(part3) );
+}
+
 
 TEST_CASE_METHOD(whole_with_three_parts, "composition: destroy part, remove from whole", "[composition]") {
     component.destroy(part);
@@ -120,6 +172,17 @@ TEST_CASE_METHOD(whole_with_three_parts, "composition: destroy part, remove from
     REQUIRE( relation.components_size(whole) == 2 );
     REQUIRE( relation.composite_of(part2) == whole );
     REQUIRE( relation.composite_of(part3) == whole );
+    REQUIRE_THROWS( relation.composite_of(part) );
+}
+
+TEST_CASE_METHOD(whole_with_three_parts, "composition: clear parts, remove from wholes", "[composition]") {
+    component.clear();
+    REQUIRE( !relation.is_component_of(whole, part) );
+    REQUIRE( !relation.is_component_of(whole, part2) );
+    REQUIRE( !relation.is_component_of(whole, part3) );
+    REQUIRE( relation.components_size(whole) == 0 );
+    REQUIRE_THROWS( relation.composite_of(part2) );
+    REQUIRE_THROWS( relation.composite_of(part3) );
     REQUIRE_THROWS( relation.composite_of(part) );
 }
 

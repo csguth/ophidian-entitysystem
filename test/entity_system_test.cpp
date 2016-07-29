@@ -79,21 +79,25 @@ TEST_CASE_METHOD(destroy_first_entity<system_with_3_entities>, "entity_system: d
 }
 
 TEST_CASE_METHOD(empty_system, "entity_system: notifier without prop", "[entity_system]") {
-    REQUIRE( !sys.notifier()->has_property(prop) );
+    REQUIRE( !sys.has_property(prop) );
+    REQUIRE( sys.properties_size() == 0);
 }
 
 TEST_CASE_METHOD(attatched_empty_system, "entity_system: notifier attach", "[entity_system]") {
-    REQUIRE( sys.notifier()->has_property(prop) );
+    REQUIRE( sys.has_property(prop) );
+    REQUIRE( sys.properties_size() == 1);
 }
 
 TEST_CASE_METHOD(attatched_empty_system, "entity_system: notifier detach", "[entity_system]") {
     sys.notifier()->dettach(prop);
-    REQUIRE(!sys.notifier()->has_property(prop));
+    REQUIRE( sys.properties_size() == 0);
+    REQUIRE(!sys.has_property(prop));
 }
 
 
 TEST_CASE_METHOD(empty_system_with_int_property, "entity_system: property<int>", "[entity_system]") {
     REQUIRE(ints.size() == 0);
+    REQUIRE( sys.properties_size() == 1);
     REQUIRE(sys.has_property(ints));
 }
 
@@ -136,14 +140,14 @@ TEST_CASE_METHOD(system_with_3_entities_and_a_property, "entity_system: clear pr
     REQUIRE( prop.size() == 0 );
 }
 
-TEST_CASE("entity_system: independent lifetime", "[entity_system]") {
-    entity_system *sys = new entity_system;
-    property<int> ints(*sys);
-    sys->create();
-    sys->create();
-    delete sys;
-    REQUIRE( ints.size() == 2 );
-}
+//TEST_CASE("entity_system: independent lifetime", "[entity_system]") {
+//    entity_system *sys = new entity_system;
+//    property<int> ints(*sys);
+//    sys->create();
+//    sys->create();
+//    delete sys;
+//    REQUIRE( ints.size() == 2 );
+//}
 
 
 TEST_CASE_METHOD(system_with_4_entities, "entity_system: helper create N entities", "[entity_system]") {
@@ -152,4 +156,29 @@ TEST_CASE_METHOD(system_with_4_entities, "entity_system: helper create N entitie
     REQUIRE( sys.valid(entity<1>()));
     REQUIRE( sys.valid(entity<2>()));
     REQUIRE( sys.valid(entity<3>()));
+}
+
+TEST_CASE_METHOD(system_with_4_entities, "entity_system: entity system bounds", "[entity_system]") {
+    REQUIRE( std::distance(sys.begin(), sys.end()) == 4 );
+}
+
+
+TEST_CASE("entity_system: create property", "[entity_system]") {
+    entity_system sys;
+    entity_system::entity en = sys.create();
+    auto ids = make_property<int>(sys);
+    REQUIRE_NOTHROW(ids[en] = 2);
+    REQUIRE(ids[en] == 2);
+}
+
+TEST_CASE("entity_system: null", "[entity_system]") {
+    REQUIRE( entity_system::null().properties_size() == 0);
+    property_mock * prop;
+    prop = new property_mock;
+    REQUIRE( entity_system::null().properties_size() == 1);
+    REQUIRE( entity_system::null().has_property(*prop) );
+
+    delete prop;
+    REQUIRE( entity_system::null().properties_size() == 0);
+
 }

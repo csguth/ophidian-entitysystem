@@ -31,11 +31,12 @@ public:
 class entity_system;
 class composition;
 
-class part_of : public abstract_property {
+class part_of : public attached_property {
     composition & m_composition;
     property< entity_system::entity > m_composites;
 public:
     part_of(composition & compo);
+    virtual ~part_of();
 
     void composite_of(entity_system::entity component, entity_system::entity composite);
     void destroy(entity_system::entity en);
@@ -48,9 +49,7 @@ public:
         m_composites.create(en);
     }
 
-    void clear() {
-        m_composites.clear();
-    }
+    void clear();
 
     entity_system::entity composite_of(entity_system::entity en) const {
         return m_composites[en];
@@ -58,7 +57,7 @@ public:
 
 };
 
-class composition : public abstract_property
+class composition : public attached_property
 {
     const entity_system & m_composite;
     entity_system & m_component;
@@ -66,10 +65,9 @@ class composition : public abstract_property
     property< std::vector< entity_system::entity > > m_components;
     part_of m_part;
 
-
 public:
     composition(const entity_system & composite, entity_system & component);
-
+    virtual ~composition();
     const entity_system& composite() const;
     const entity_system& component() const;
     bool is_component_of(entity_system::entity composite, entity_system::entity component) const;
@@ -99,8 +97,7 @@ public:
 
     void destroy(entity_system::entity en);
 
-    void clear() {
-    }
+    void clear();
 
 };
 
