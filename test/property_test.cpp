@@ -16,7 +16,7 @@ TEST_CASE("property: constructor & destructor", "[property]"){
 TEST_CASE("property: assignment", "[property]"){
     entity_system sys;
     make_entities<10>(sys);
-    property<int> prop(sys);
+    property<int> prop{make_property<int>(sys)};
     property<int> prop2;
     prop2 = prop;
 
@@ -29,6 +29,21 @@ TEST_CASE("property: assignment", "[property]"){
     REQUIRE( sys.has_property(prop2) );
     REQUIRE( prop.size() == 10 );
     REQUIRE( prop2.size() == 10 );
+
+    auto last_created = sys.create();
+
+    REQUIRE(prop.size() == 11);
+    REQUIRE(prop2.size() == 11);
+
+    sys.destroy(last_created);
+
+    REQUIRE( prop.size() == 10 );
+    REQUIRE( prop2.size() == 10 );
+
+    sys.clear();
+
+    REQUIRE( prop.size() == 0 );
+    REQUIRE( prop2.size() == 0 );
 }
 
 
@@ -53,13 +68,13 @@ TEST_CASE("property: set entity system", "[property]") {
 }
 
 TEST_CASE_METHOD(entity_system_test::empty_system, "property: is attached to system", "[property]") {
-    property<int> prop(sys);
+    property<int> prop{make_property<int>(sys)};
     REQUIRE(prop.system() == sys);
     REQUIRE(sys.has_property(prop));
 }
 
 TEST_CASE_METHOD(entity_system_test::empty_system, "property: dettach property from system", "[property]") {
-    property<int> prop(sys);
+    property<int> prop{make_property<int>(sys)};
     prop.system(entity_system::null());
     REQUIRE(entity_system::null().has_property(prop));
     REQUIRE(prop.system() == entity_system::null());

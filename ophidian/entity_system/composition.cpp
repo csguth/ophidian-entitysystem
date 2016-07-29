@@ -10,7 +10,7 @@ namespace entity_system {
 composition::composition(const entity_system &composite, entity_system &component) :
     m_composite(composite),
     m_component(component),
-    m_components(composite),
+    m_components(make_property<std::vector< entity_system::entity > >(composite)),
     m_part(*this)
 {
     composite.notifier()->dettach(m_components);
@@ -77,7 +77,7 @@ void composition::clear()
 
 part_of::part_of(composition &compo) :
     m_composition(compo),
-    m_composites(compo.component())
+    m_composites(make_property<entity_system::entity>(compo.component()))
 {
     compo.component().notifier()->dettach(m_composites);
     entity_system::null().notifier()->attach(m_composites);

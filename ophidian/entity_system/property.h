@@ -48,10 +48,23 @@ public:
 
 
 
+
+
+
+
 template <class PropertyType>
 class property : public attached_property
 {
 public:
+    class helper {
+    public:
+        static property<PropertyType> make_property(const entity_system & sys) {
+            return std::move(property<PropertyType>(sys));
+        }
+    };
+
+    friend class helper;
+
     using ContainerType = std::vector<PropertyType>;
     using IteratorType = typename ContainerType::iterator;
     using ConstIteratorType = typename ContainerType::const_iterator;
@@ -65,7 +78,6 @@ private:
         resize(system().size());
     }
 
-public:
     property(const entity_system & sys)
     {
 #ifndef NDEBUG
@@ -73,6 +85,7 @@ public:
 #endif
         init(sys);
     }
+public:
 
     property(const property & prop) :
         property(prop.system())
@@ -148,12 +161,15 @@ public:
     typename ContainerType::const_reference at(entity_system::entity_system::entity en) const {
         return m_container.at(lookup(en));
     }
+
+
 };
 
-template <class PropertyType>
+template<class PropertyType>
 property<PropertyType> make_property(const entity_system & sys) {
-    return std::move(property<PropertyType>(sys));
+    return property<PropertyType>::helper::make_property(sys);
 }
+
 
 }
 }

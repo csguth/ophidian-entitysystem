@@ -46,7 +46,7 @@ struct attatched_empty_system {
 struct empty_system_with_int_property : public empty_system  {
     property<int> ints;
     empty_system_with_int_property() :
-        ints(sys){
+        ints(make_property<int>(sys)){
     }
 };
 
@@ -74,7 +74,7 @@ using system_with_4_entities = system_with_N_entities<4>;
 
 struct system_with_3_entities_and_a_property : public system_with_3_entities {
     property<int> prop;
-    system_with_3_entities_and_a_property() : prop(sys) {
+    system_with_3_entities_and_a_property() : prop(make_property<int>(sys)) {
         prop[en[0]] = 1;
         prop[en[1]] = 2;
         prop[en[2]] = 3;
