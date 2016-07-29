@@ -8,6 +8,25 @@
 namespace ophidian {
 namespace entity_system {
 
+template <class IteratorType>
+class bounds {
+
+    const std::vector< entity_system::entity > & m_storage;
+
+public:
+    bounds(const std::vector< entity_system::entity > & storage) :
+        m_storage(storage){
+    }
+
+    std::vector< entity_system::entity >::const_iterator begin() const {
+        return m_storage.begin();
+    }
+
+    std::vector< entity_system::entity >::const_iterator end() const {
+        return m_storage.end();
+    }
+};
+
 class abstract_property {
 public:
     virtual ~abstract_property() { }

@@ -60,7 +60,7 @@ struct system_with_N_entities {
 
 
     template<int i>
-    entity_system::entity entity() {
+    entity_system::entity entity() const {
         return en[i];
     }
 
@@ -92,7 +92,7 @@ struct destroy_first_entity {
     entity_system & sys = fixture.sys;
 
     template<int i>
-    entity_system::entity entity() {
+    entity_system::entity entity() const {
         return fixture.entity<i>();
     }
 };

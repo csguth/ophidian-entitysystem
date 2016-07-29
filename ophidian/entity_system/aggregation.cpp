@@ -1,37 +1,35 @@
-#include "composition.h"
-#include "entity_system.h"
-
-#include <algorithm>
-#include <functional>
+#include "aggregation.h"
 
 namespace ophidian {
 namespace entity_system {
 
-composition::composition(const entity_system &composite, entity_system &component) :
+aggregation::aggregation(const entity_system &composite, entity_system &component) :
     association(composite, component)
 {
+
 }
 
-composition::~composition()
+aggregation::~aggregation()
 {
+
 }
 
-void composition::destroy(entity_system::entity en)
+void aggregation::destroy(entity_system::entity en)
 {
     auto components = m_components[en];
 
     for(auto component : components)
-        destroy_component(component);
+        dettach_component(en, component);
 
     m_components.destroy(en);
 }
 
-void composition::clear()
+void aggregation::clear()
 {
     for(auto compo : composite()) {
         auto components = m_components[compo];
         for(auto component : components)
-            destroy_component(component);
+            dettach_component(compo, component);
     }
     m_components.clear();
 }

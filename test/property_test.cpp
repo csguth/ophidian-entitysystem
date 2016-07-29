@@ -96,3 +96,12 @@ TEST_CASE_METHOD(entity_system_test::empty_system, "property: helper to create p
 
 
 
+TEST_CASE_METHOD(entity_system_test::system_with_1_entity, "property<bool>", "[property]") {
+    property<bool> prop(make_property<bool>(sys));
+    prop[entity<0>()] = false;
+    REQUIRE( !prop[entity<0>()] );
+    prop[entity<0>()] = true;
+    REQUIRE( prop[entity<0>()] );
+
+}
+
