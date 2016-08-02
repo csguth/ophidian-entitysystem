@@ -3,10 +3,5 @@
 namespace ophidian {
 namespace netlist {
 
-netlist::netlist()
-{
-
-}
-
 }
 }

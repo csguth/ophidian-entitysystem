@@ -90,6 +90,7 @@ private:
         resize(system().size());
     }
 
+protected:
     property(const entity_system & sys)
     {
         init(sys);
@@ -162,10 +163,48 @@ public:
 
 };
 
+template <class OpaqueEntityType, class PropertyType>
+class opaque_property : public property<PropertyType> {
+
+    opaque_property(const entity_system & sys) :
+        property<PropertyType>(sys)
+    {
+
+    }
+public:
+
+    class helper {
+    public:
+        static opaque_property<OpaqueEntityType, PropertyType> make_property(const entity_system & sys) {
+            return std::move(opaque_property<OpaqueEntityType, PropertyType>(sys));
+        }
+    };
+
+    friend class helper;
+
+    PropertyType operator[](OpaqueEntityType en) const {
+        return static_cast<property<PropertyType>*>(this)[en.entity()];
+    }
+
+    typename property<PropertyType>::ContainerType::reference operator[](OpaqueEntityType en) {
+        return (*static_cast<property<PropertyType>*>(this))[en.entity()];
+    }
+
+    typename property<PropertyType>::ContainerType::const_reference at(OpaqueEntityType en) const {
+        return this->at(en.entity());
+    }
+};
+
 template<class PropertyType>
 property<PropertyType> make_property(const entity_system & sys) {
     return property<PropertyType>::helper::make_property(sys);
 }
+
+template <class OpaqueEntityType, class PropertyType>
+opaque_property<OpaqueEntityType, PropertyType> make_opaque_property(const entity_system & sys) {
+    return opaque_property<OpaqueEntityType, PropertyType>::helper::make_property(sys);
+}
+
 
 }
 }
