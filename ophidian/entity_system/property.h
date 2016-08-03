@@ -183,15 +183,15 @@ public:
     friend class helper;
 
     PropertyType operator[](OpaqueEntityType en) const {
-        return static_cast<property<PropertyType>*>(this)[en.entity()];
+        return static_cast<property<PropertyType>*>(this)[en];
     }
 
     typename property<PropertyType>::ContainerType::reference operator[](OpaqueEntityType en) {
-        return (*static_cast<property<PropertyType>*>(this))[en.entity()];
+        return (*static_cast<property<PropertyType>*>(this))[en];
     }
 
     typename property<PropertyType>::ContainerType::const_reference at(OpaqueEntityType en) const {
-        return this->at(en.entity());
+        return this->at(en);
     }
 };
 

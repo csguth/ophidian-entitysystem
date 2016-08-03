@@ -28,6 +28,7 @@ public:
         entity(const entity& o);
         entity& operator=(const entity&o);
 
+        bool operator<(const entity&o) const;
         bool operator==(const entity&o) const;
         bool operator!=(const entity&o) const;
         std::size_t id() const {

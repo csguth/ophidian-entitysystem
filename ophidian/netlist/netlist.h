@@ -5,55 +5,39 @@
 #include <ophidian/entity_system/property.h>
 #include <cassert>
 
+#include <boost/serialization/strong_typedef.hpp>
+
 namespace ophidian {
 namespace netlist {
 
 class netlist;
 
-#define CREATE_OPAQUE_ENTITY(NAME, id) \
-    class NAME {\
-        entity_system::entity_system::entity m_entity;\
-        friend class netlist;\
-        explicit NAME(entity_system::entity_system::entity entity) : m_entity(entity) {}\
-    public:\
-        NAME(void) {}\
-        entity_system::entity_system::entity entity() const { return m_entity; }\
-    };\
-    template <> struct entity_type_offset <NAME> {\
-        static const size_t value = id;\
-    };\
-
-
-
-//\
-//    template <> void netlist::destroy<NAME>(NAME en){ SYSTEM.destroy(en.m_entity); }\
-//    template <> bool netlist::valid<NAME>(NAME en) const { return SYSTEM.valid(en.m_entity); }\
-//    template <> std::size_t netlist::size<NAME>(void) const { return SYSTEM.size(); }
-
-struct NetlistEntityIDs {
-
-enum IDs {
-    CELL = 0,
-    PIN,
-    NET
-};
-
-};
-
 template <class T> struct entity_type_offset {
     static const size_t value = -1;
 };
 
-CREATE_OPAQUE_ENTITY(cell, NetlistEntityIDs::CELL)
-CREATE_OPAQUE_ENTITY(pin, NetlistEntityIDs::PIN)
-CREATE_OPAQUE_ENTITY(net, NetlistEntityIDs::NET)
+BOOST_STRONG_TYPEDEF(entity_system::entity_system::entity, cell)
+BOOST_STRONG_TYPEDEF(entity_system::entity_system::entity, pin)
+BOOST_STRONG_TYPEDEF(entity_system::entity_system::entity, net)
+
+template<> struct entity_type_offset<cell> {
+    static const size_t value = 0;
+};
+
+template<> struct entity_type_offset<pin> {
+    static const size_t value = 1;
+};
+
+template<> struct entity_type_offset<net> {
+    static const size_t value = 2;
+};
 
 class netlist {
     entity_system::entity_system m_systems[3];
 
     template <typename T>
     inline void offset_check() const {
-        static_assert(entity_type_offset<T>::value >= NetlistEntityIDs::CELL && entity_type_offset<T>::value <= NetlistEntityIDs::NET, "invalid entity");
+        static_assert(entity_type_offset<T>::value == entity_type_offset<cell>::value || entity_type_offset<T>::value == entity_type_offset<pin>::value || entity_type_offset<T>::value == entity_type_offset<net>::value, "The passed Entity is not handled by Netlist!!");
     }
 
 public:
@@ -64,7 +48,7 @@ public:
 
     template <typename T> void destroy(T entity) {
         offset_check<T>();
-        return m_systems[entity_type_offset<T>::value].destroy(entity.m_entity);
+        return m_systems[entity_type_offset<T>::value].destroy(entity);
     }
 
     template <typename T> std::size_t size() const {
@@ -74,7 +58,7 @@ public:
 
     template <typename T> bool valid(T entity) const {
         offset_check<T>();
-        return m_systems[entity_type_offset<T>::value].valid(entity.m_entity);
+        return m_systems[entity_type_offset<T>::value].valid(entity);
     }
 
     template <typename T, typename PropertyType>

@@ -76,6 +76,11 @@ entity_system::entity &entity_system::entity::operator=(const entity_system::ent
     return *this;
 }
 
+bool entity_system::entity::operator<(const entity_system::entity &o) const
+{
+    return m_id < o.m_id;
+}
+
 bool entity_system::entity::operator==(const entity_system::entity &o) const
 {
     return m_id == o.m_id;

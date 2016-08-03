@@ -92,3 +92,11 @@ TEST_CASE_METHOD(Netlist_With_One_Cell_Fixture, "netlist: cell names 2 ", "[netl
    REQUIRE(names[cell()] == "u1");
 }
 
+TEST_CASE_METHOD(Netlist_With_One_Cell_Fixture, "netlist: trying to access a cell property with a pin", "[netlist]") {
+   auto names = netlist().make_property<Cell, std::string>();
+   auto cell = netlist().create<Cell>();
+   auto pin = netlist().create<Pin>();
+   names[cell]; // OK, compiles
+//   names[pin]; // Invalid, does not compile
+}
+
