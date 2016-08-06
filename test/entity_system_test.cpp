@@ -8,6 +8,12 @@
 
 using namespace entity_system_test;
 
+TEST_CASE("entity: null", "[entity_system]")
+{
+    entity_system::entity en;
+    REQUIRE(en.id() == entity_system::entity::invalid());
+    REQUIRE(en == entity_system::entity::null());
+}
 
 TEST_CASE_METHOD(empty_system, "entity_system: entity system has a constructor", "[entity_system]") {
     REQUIRE(sys.size() == 0);
