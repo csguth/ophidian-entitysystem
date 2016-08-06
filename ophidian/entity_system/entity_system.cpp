@@ -2,16 +2,159 @@
 #include "property.h"
 
 #include <limits>
+#include <set>
+#include <vector>
+
 
 namespace ophidian {
 namespace entity_system {
 
-const std::size_t entity_system::entity::INVALID{std::numeric_limits<std::size_t>::max()};
 
-const entity_system entity_system::m_NULL;
+using entity = entity_system::entity;
+
+using StorageType = std::vector<entity>;
+
+// entity_system::iterator PIMPL
+struct entity_system::const_iterator::impl {
+    StorageType::const_iterator it;
+};
+
+entity_system::const_iterator::const_iterator() :
+    this_(new impl)
+{
+
+}
+
+entity_system::const_iterator::~const_iterator()
+{
+
+}
+
+entity_system::const_iterator::const_iterator(const entity_system::const_iterator &o) :
+    const_iterator()
+{
+    (*this) = o;
+}
+
+entity_system::const_iterator &entity_system::const_iterator::operator=(const entity_system::const_iterator &o)
+{
+    this_->it = o.this_->it;
+}
+
+const entity &entity_system::const_iterator::operator*() const
+{
+    return *this_->it;
+}
+
+const entity_system::const_iterator &entity_system::const_iterator::operator++(void)
+{
+    ++this_->it;
+    return *this;
+}
+
+entity_system::const_iterator::difference_type entity_system::const_iterator::operator-(const entity_system::const_iterator &o) const
+{
+    return this_->it - o.this_->it;
+}
+
+bool entity_system::const_iterator::operator==(const entity_system::const_iterator &it) const
+{
+    return this_->it == it.this_->it;
+}
+
+bool entity_system::const_iterator::operator!=(const entity_system::const_iterator &it) const
+{
+    return this_->it != it.this_->it;
+}
+
+entity_system::const_iterator::const_iterator(const impl &i) :
+    this_(new impl(i))
+{
+
+}
+// entity_system PIMPL
+
+class entity_system::impl {
+public:
+    impl() :
+        m_notifier(new notifier_)
+    {
+
+    }
+
+    inline  std::size_t size() const {
+        return m_entities.size();
+    }
+
+    inline std::size_t lookup(entity e) const {
+        std::size_t value = m_id2index.at(e.id());
+        if(value == entity::invalid())
+            throw std::runtime_error("Lookup on a dead entity (id = " + std::to_string(e.id()) + ")");
+        return value;
+    }
+
+    inline entity create()
+    {
+        entity new_entity(m_id2index.size());
+        m_id2index.push_back(m_entities.size());
+        m_entities.push_back(new_entity);
+        m_notifier->create(new_entity);
+        return new_entity;
+    }
+
+    inline void destroy(entity e) {
+        m_notifier->destroy(e);
+        std::size_t index = m_id2index.at(e.id());
+        m_id2index.at(m_entities.back().id()) = index;
+        std::swap(m_entities.at(index), m_entities.back());
+        m_entities.pop_back();
+        m_id2index[e.id()] = entity::invalid();
+    }
+
+    inline bool valid(entity e) const
+    {
+        return (e != entity::null()) && (m_id2index[e.id()] != entity::invalid());
+    }
+
+    inline void clear()
+    {
+        m_notifier->clear();
+        m_entities.clear();
+        std::fill(m_id2index.begin(), m_id2index.end(), entity::invalid());
+    }
+
+    inline notifier_ *notifier() const {
+        return const_cast<notifier_*>(m_notifier.get());
+    }
+
+    inline bool has_property(abstract_property &prop) const {
+        return m_notifier->has_property(prop);
+    }
+
+    inline bool operator==(const impl& other) const {
+        return this == &other;
+    }
+
+    inline const const_iterator begin() const {
+        return const_iterator::impl{m_entities.begin()};
+    }
+
+    inline const const_iterator end() const {
+        return const_iterator::impl{m_entities.end()};
+    }
+
+    inline std::size_t properties_size() const {
+        return m_notifier->properties_size();
+    }
+
+private:
+    std::vector<std::size_t> m_id2index;
+    StorageType m_entities;
+    std::unique_ptr<notifier_> m_notifier;
+};
 
 entity_system::entity_system() :
-    m_notifier(new notifier_)
+    this_(new impl)
 {
 
 }
@@ -21,116 +164,194 @@ entity_system::~entity_system()
 
 }
 
-entity_system::entity entity_system::create()
-{
-    entity new_entity(m_id2index.size());
-    m_id2index.push_back(m_entities.size());
-    m_entities.push_back(new_entity);
-
-    m_notifier->create(new_entity);
-
-    return new_entity;
+std::size_t entity_system::size() const {
+    return this_->size();
 }
 
-void entity_system::destroy(entity_system::entity e)
-{
-    m_notifier->destroy(e);
-
-    std::size_t index = m_id2index.at(e.id());
-
-    m_id2index.at(m_entities.back().id()) = index;
-
-    std::swap(m_entities.at(index), m_entities.back());
-    m_entities.pop_back();
-    m_id2index[e.id()] = entity_system::entity::INVALID;
-
-
-
+std::size_t entity_system::lookup(entity_system::entity e) const {
+    return this_->lookup(e);
 }
 
-bool entity_system::valid(entity_system::entity e) const
+entity entity_system::create()
 {
-    return (e != entity::null()) && (m_id2index[e.id()] != entity_system::entity::INVALID);
+    return this_->create();
+}
+
+void entity_system::destroy(entity e)
+{
+    this_->destroy(e);
+}
+
+bool entity_system::valid(entity e) const
+{
+    return this_->valid(e);
 }
 
 void entity_system::clear()
 {
-    m_notifier->clear();
-    m_entities.clear();
-    std::fill(m_id2index.begin(), m_id2index.end(), entity::INVALID);
+    this_->clear();
 }
 
-entity_system::entity::entity() : m_id(INVALID)
+entity_system::notifier_ *entity_system::notifier() const {
+    return this_->notifier();
+}
+
+bool entity_system::has_property(abstract_property &prop) const {
+    return this_->has_property(prop);
+}
+
+bool entity_system::operator==(const entity_system &other) const {
+    return (*this_) == (*other.this_);
+}
+
+const entity_system::const_iterator entity_system::begin() const {
+    return this_->begin();
+}
+
+const entity_system::const_iterator entity_system::end() const {
+    return this_->end();
+}
+
+const entity_system &entity_system::null() {
+    static entity_system es;
+    return es;
+}
+
+std::size_t entity_system::properties_size() const {
+    return this_->properties_size();
+}
+
+entity::entity() : m_id(invalid())
 {
 
 }
 
-entity_system::entity::entity(const entity_system::entity &o)
+entity::entity(const entity &o)
 {
     *this = o;
 }
 
-entity_system::entity &entity_system::entity::operator=(const entity_system::entity &o)
+entity &entity::operator=(const entity &o)
 {
     m_id = o.m_id;
     return *this;
 }
 
-bool entity_system::entity::operator<(const entity_system::entity &o) const
+bool entity::operator<(const entity &o) const
 {
     return m_id < o.m_id;
 }
 
-bool entity_system::entity::operator==(const entity_system::entity &o) const
+bool entity::operator==(const entity &o) const
 {
     return m_id == o.m_id;
 }
 
-bool entity_system::entity::operator!=(const entity_system::entity &o) const
+bool entity::operator!=(const entity &o) const
 {
     return !((*this) == o);
 }
 
-entity_system::entity entity_system::entity::null()
+entity_system::entity entity::null()
 {
     static entity null_entity;
     return null_entity;
 }
 
+std::size_t entity::invalid()
+{
+    return std::numeric_limits<std::size_t>::max();
+}
+
+// entity_system::notifier_ PIMPL
+struct entity_system::notifier_::impl {
+
+    inline void attach(abstract_property &prop) {
+        m_properties.insert(&prop);
+    }
+
+    inline void dettach(abstract_property &prop)
+    {
+        std::size_t items_erased{m_properties.erase(&prop)};
+        if(!items_erased)
+            throw std::runtime_error("can't dettach unattached property");
+    }
+
+    inline void create(entity_system::entity en) {
+        for(auto prop : m_properties)
+            prop->create(en);
+    }
+
+    inline void destroy(entity_system::entity en) {
+        for(auto prop : m_properties)
+            prop->destroy(en);
+    }
+
+    inline void clear() {
+        for(auto prop : m_properties)
+            prop->clear();
+    }
+
+    inline bool has_property(abstract_property &prop) const {
+        return (m_properties.count(&prop) == 1);
+    }
+
+    inline std::size_t properties_size() const
+    {
+        return m_properties.size();
+    }
+
+private:
+    std::set<abstract_property*> m_properties;
+
+};
+
+// entity_system::notifier_
+entity_system::notifier_::notifier_() :
+    this_(new impl)
+{
+
+}
+
+entity_system::notifier_::~notifier_()
+{
+
+}
+
 void entity_system::notifier_::attach(abstract_property &prop)
 {
-    m_properties.insert(&prop);
+    this_->attach(prop);
 }
 
 void entity_system::notifier_::dettach(abstract_property &prop)
 {
-    std::size_t items_erased{m_properties.erase(&prop)};
-    if(!items_erased)
-        throw std::runtime_error("can't dettach unattached property");
+    this_->dettach(prop);
 }
 
-void entity_system::notifier_::create(entity_system::entity en)
+void entity_system::notifier_::create(entity en)
 {
-    for(auto prop : m_properties)
-        prop->create(en);
+    this_->create(en);
 }
 
-void entity_system::notifier_::destroy(entity_system::entity en)
+void entity_system::notifier_::destroy(entity en)
 {
-    for(auto prop : m_properties)
-        prop->destroy(en);
+    this_->destroy(en);
 }
 
 void entity_system::notifier_::clear()
 {
-    for(auto prop : m_properties)
-        prop->clear();
+    this_->clear();
+}
+
+std::size_t entity_system::notifier_::properties_size() const
+{
+    return this_->properties_size();
 }
 
 
 bool entity_system::notifier_::has_property(abstract_property &prop) const
 {
-    return m_properties.find(&prop) != m_properties.end();
+    return this_->has_property(prop);
 }
 
 }

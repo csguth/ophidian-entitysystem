@@ -1,8 +1,6 @@
 #ifndef OPHIDIAN_ENTITY_SYSTEM_ENTITY_SYSTEM_H
 #define OPHIDIAN_ENTITY_SYSTEM_ENTITY_SYSTEM_H
 
-#include <vector>
-#include <set>
 #include <memory>
 
 namespace ophidian {
@@ -12,18 +10,12 @@ class abstract_property;
 
 class entity_system
 {
-    static const entity_system m_NULL;
 public:
 
     class entity {
-
-        static const std::size_t INVALID;
-
-        friend class entity_system;
-        std::size_t m_id;
-
-        explicit entity(std::size_t id) : m_id(id) {};
     public:
+        friend class entity_system;
+
         entity();
         entity(const entity& o);
         entity& operator=(const entity&o);
@@ -35,14 +27,18 @@ public:
             return m_id;
         }
         static entity null();
+        static std::size_t invalid();
+
+    private:
+        std::size_t m_id;
+        explicit entity(std::size_t id) : m_id(id) {};
     };
 
     class notifier_ {
-
-        std::set<abstract_property*> m_properties;
-
-
     public:
+
+        notifier_();
+        ~notifier_();
 
         void attach(abstract_property& prop);
         void dettach(abstract_property& prop);
@@ -51,68 +47,53 @@ public:
         void create(entity en);
         void destroy(entity en);
         void clear();
+        std::size_t properties_size() const;
 
-        std::size_t properties_size() const {
-            return m_properties.size();
-        }
-
-
+    private:
+        struct impl;
+        std::unique_ptr<impl> this_;
     };
 
-    using StorageType = std::vector<entity>;
+    class const_iterator : public std::iterator<std::random_access_iterator_tag, entity, std::ptrdiff_t> {
+    public:
+        friend class entity_system;
+        const_iterator();
+        ~const_iterator();
+        const_iterator(const const_iterator & o);
+        const_iterator& operator=(const const_iterator & o);
+        const const_iterator& operator++(void);
+        difference_type operator-(const const_iterator & o) const;
+        const entity& operator*() const;
+        bool operator==(const const_iterator & it) const;
+        bool operator!=(const const_iterator & it) const;
+    private:
+        struct impl;
+        const_iterator(const impl & i);
+        std::unique_ptr<impl> this_;
+    };
 
-
-
-private:
-
-    std::vector<std::size_t> m_id2index;
-    StorageType m_entities;
-    std::unique_ptr<notifier_> m_notifier;
-public:
     entity_system();
     virtual ~entity_system();
 
-    std::size_t size() const { return m_entities.size(); }
-    std::size_t lookup(entity e) const {
-        std::size_t value = m_id2index.at(e.id());
-        if(value == -1)
-            throw std::runtime_error("error, deleted entity id = " + std::to_string(e.id()));
-        return value;
-    }
+    std::size_t size() const;
+    std::size_t lookup(entity e) const;
+    bool valid(entity e) const;
+    notifier_ * notifier() const;
+    bool has_property(abstract_property &prop) const;
+    bool operator==(const entity_system& other) const;
+    const const_iterator begin() const;
+    const const_iterator end() const;
+    std::size_t properties_size() const;
 
     entity create();
     void destroy(entity e);
-    bool valid(entity e) const;
     void clear();
 
+    static const entity_system& null();
 
-    notifier_ * notifier() const {
-        return const_cast<notifier_*>(m_notifier.get());
-    }
-
-
-    bool has_property(abstract_property& prop) const { return m_notifier->has_property(prop); }
-
-    bool operator==(const entity_system& other) const {
-        return this == &other;
-    }
-
-    StorageType::const_iterator begin() const {
-        return m_entities.begin();
-    }
-
-    StorageType::const_iterator end() const {
-        return m_entities.end();
-    }
-
-    static const entity_system& null() {
-        return entity_system::m_NULL;
-    }
-
-    std::size_t properties_size() const {
-        return m_notifier->properties_size();
-    }
-
+private:
+    struct impl;
+    std::unique_ptr<impl> this_;
 };
 
 // helper functs
@@ -126,7 +107,5 @@ std::array<entity_system::entity, NumberOfElements> make_entities(entity_system&
 
 }
 }
-
-
 
 #endif // OPHIDIAN_ENTITY_SYSTEM_ENTITY_SYSTEM_H
