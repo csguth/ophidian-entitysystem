@@ -125,7 +125,7 @@ struct association::impl {
 
     inline bounds<std::vector<entity_system::entity>::const_iterator> components_bounds(entity_system::entity composite) const
     {
-        return bounds<std::vector< entity_system::entity >::const_iterator>(m_components.at(composite));
+        return bounds<std::vector< entity_system::entity >::const_iterator>(m_components.at(composite).begin(), m_components.at(composite).end());
     }
 
     inline std::size_t components_size(entity_system::entity composite) const {
