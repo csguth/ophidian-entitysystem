@@ -1,5 +1,9 @@
 #include "aggregation.h"
 
+#include <list>
+#include <deque>
+#include <cassert>
+
 namespace ophidian {
 namespace entity_system {
 
@@ -14,24 +18,26 @@ aggregation::~aggregation()
 
 }
 
-void aggregation::destroy(entity_system::entity en)
+void aggregation::on_destroy(entity_system::entity en)
 {
-    auto components = m_components[en];
+    auto components = components_bounds(en);
+    std::vector<entity_system::entity> local_components(components.begin(), components.end());
 
-    for(auto component : components)
+    for(auto component : local_components)
         dettach_component(en, component);
 
-    m_components.destroy(en);
+    bare_destroy(en);
 }
 
-void aggregation::clear()
+void aggregation::on_clear()
 {
     for(auto compo : composite()) {
-        auto components = m_components[compo];
-        for(auto component : components)
+        auto components = components_bounds(compo);
+        std::vector<entity_system::entity> local_components(components.begin(), components.end());
+        for(auto component : local_components)
             dettach_component(compo, component);
     }
-    m_components.clear();
+    bare_clear();
 }
 
 }

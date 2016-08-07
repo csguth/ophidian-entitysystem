@@ -77,8 +77,6 @@ TEST_CASE_METHOD(Netlist_With_One_Cell_Fixture, "netlist: cell names", "[netlist
 }
 
 struct myscopedentity {
-
-
     entity_system::entity_system::entity entity() const {
         return entity_system::entity_system::entity{};
     }

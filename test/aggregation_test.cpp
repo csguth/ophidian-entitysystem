@@ -6,11 +6,11 @@
 
 using namespace ophidian::entity_system;
 
-using whole_composed_of_three_parts_fixture = association_fixture::whole_composed_of_three_parts_fixture<aggregation>;
+using whole_composed_of_three_parts_fixture = association_fixture::whole_composed_of_three_parts_fixture_plus_one_unattached_part<aggregation>;
 
 TEST_CASE_METHOD(whole_composed_of_three_parts_fixture, "aggregation: 'whole_composed_of_three_parts_fixture' test", "[aggregation]") {
     REQUIRE( composite().size() == 1 );
-    REQUIRE( component().size() == 3 );
+    REQUIRE( component().size() == 4 );
     REQUIRE( relation().components_size(whole()) == 3 );
 }
 
@@ -77,23 +77,24 @@ struct self_aggregation_with_root_and_child_fixture {
 };
 
 
-TEST_CASE_METHOD(self_aggregation_with_root_and_child_fixture, "compostition:  'self_aggregation_with_root_and_child_fixture' test", "[aggregation]") {
+TEST_CASE_METHOD(self_aggregation_with_root_and_child_fixture, "aggregation:  'self_aggregation_with_root_and_child_fixture' test", "[aggregation]") {
     REQUIRE( compo.components_size(root) == 1 );
     REQUIRE( compo.composite_of(child) == root );
     REQUIRE( std::find(compo.components_bounds(root).begin(), compo.components_bounds(root).end(), child) != compo.components_bounds(root).end() );
 }
 
 
-TEST_CASE_METHOD(self_aggregation_with_root_and_child_fixture, "compostition: self aggregation, attach child, destroy parent", "[aggregation]") {
+TEST_CASE_METHOD(self_aggregation_with_root_and_child_fixture, "aggregation: self aggregation, attach child, destroy parent", "[aggregation]") {
     sys.destroy(root);
     REQUIRE( sys.valid(child) );
     REQUIRE_THROWS( compo.components_size(root) );
     REQUIRE( compo.composite_of(child) == entity_system::entity::null() );
 }
 
-TEST_CASE_METHOD(self_aggregation_with_root_and_child_fixture, "compostition: self aggregation, attach child, destroy child", "[aggregation]") {
+TEST_CASE_METHOD(self_aggregation_with_root_and_child_fixture, "aggregation: self aggregation, attach child, destroy child", "[aggregation]") {
     sys.destroy(child);
     REQUIRE( compo.components_size(root) == 0 );
     REQUIRE_THROWS( compo.components_size(child) );
 }
+
 

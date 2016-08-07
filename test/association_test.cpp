@@ -10,10 +10,10 @@ public:
         association(composite, component){
     }
 
-    virtual void destroy(entity_system::entity en){
+    virtual void on_destroy(entity_system::entity en){
     }
 
-    virtual void clear(){
+    virtual void on_clear(){
     }
 
 };
@@ -61,29 +61,6 @@ struct three_parts_one_whole_fixture : public two_parts_one_whole_fixture {
 
 TEST_CASE("association: test fixture","[association]") {
     REQUIRE_NOTHROW( empty_part_whole_fixture() );
-}
-
-TEST_CASE("part of: destructor", "[association][part_of_association]") {
-    entity_system composite, component;
-    association_mock compo(composite, component);
-    const int NULL_PROPERTIES_BEFORE = 2;
-    REQUIRE( entity_system::null().properties_size() == NULL_PROPERTIES_BEFORE );
-    part_of_association * part;
-    part = new part_of_association(compo);
-    REQUIRE( entity_system::null().properties_size() == NULL_PROPERTIES_BEFORE + 1 );
-    delete part;
-    REQUIRE( entity_system::null().properties_size() == NULL_PROPERTIES_BEFORE);
-}
-
-TEST_CASE("part of: constructor", "[association][part_of_association]") {
-    entity_system composite, component;
-    association_mock compo(composite, component);
-    const int NULL_PROPERTIES_BEFORE = 2;
-    part_of_association part(compo);
-    REQUIRE(&part.system() == &component);
-    REQUIRE(composite.has_property(compo));
-    REQUIRE(composite.properties_size() == 1);
-    REQUIRE(entity_system::null().properties_size() == NULL_PROPERTIES_BEFORE + 1);
 }
 
 

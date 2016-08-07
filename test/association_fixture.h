@@ -9,13 +9,14 @@ namespace association_fixture {
 using namespace ophidian::entity_system;
 
 template <class AssociationType>
-class whole_composed_of_three_parts_fixture {
+class whole_composed_of_three_parts_fixture_plus_one_unattached_part {
     entity_system_test::system_with_1_entity m_wholes;
-    entity_system_test::system_with_3_entities m_parts;
+    entity_system_test::system_with_4_entities m_parts;
     AssociationType m_relation;
 public:
-    whole_composed_of_three_parts_fixture() : m_relation(m_wholes.sys, m_parts.sys) {
+    whole_composed_of_three_parts_fixture_plus_one_unattached_part() : m_relation(m_wholes.sys, m_parts.sys) {
         attach_component(m_relation, whole(), m_parts.en.begin(), m_parts.en.end());
+        m_relation.dettach_component(whole(), m_parts.en.back()); // last part is unassigned
     }
 
     entity_system::entity whole() const {

@@ -2,27 +2,17 @@
 #define ENTITY_SYSTEM_FIXTURE_H
 
 #include <ophidian/entity_system/entity_system.h>
+#include <ophidian/entity_system/property.h>
 
 namespace entity_system_test {
 
 using namespace ophidian::entity_system;
 
 struct property_mock : public attached_property {
-
-    void resize(std::size_t new_size) {
-
-    }
-
-    void create(entity_system::entity e){
-    }
-
-    void destroy(entity_system::entity e){
-    }
-
-    void clear() {
-    }
-
-
+    void on_resize(std::size_t) {}
+    void on_create(entity_system::entity) {}
+    void on_destroy(entity_system::entity) {}
+    void on_clear() {}
 };
 
 
@@ -43,6 +33,8 @@ struct attatched_empty_system {
     }
 };
 
+
+
 struct empty_system_with_int_property : public empty_system  {
     property<int> ints;
     empty_system_with_int_property() :
@@ -56,6 +48,9 @@ struct system_with_N_entities {
     entity_system sys;
     std::array< entity_system::entity, N > en;
     system_with_N_entities() : en(make_entities<N>(sys)) {
+    }
+    virtual ~system_with_N_entities() {
+
     }
 
 

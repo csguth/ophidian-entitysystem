@@ -2,9 +2,9 @@
 #include "property.h"
 
 #include <limits>
-#include <set>
+#include <list>
 #include <vector>
-
+#include <algorithm>
 
 namespace ophidian {
 namespace entity_system {
@@ -95,25 +95,21 @@ public:
 
     inline entity create()
     {
-        entity new_entity(m_id2index.size());
-        m_id2index.push_back(m_entities.size());
+        entity new_entity(create_new_id());
         m_entities.push_back(new_entity);
         m_notifier->create(new_entity);
         return new_entity;
     }
 
     inline void destroy(entity e) {
-        m_notifier->destroy(e);
-        std::size_t index = m_id2index.at(e.id());
-        m_id2index.at(m_entities.back().id()) = index;
-        std::swap(m_entities.at(index), m_entities.back());
-        m_entities.pop_back();
-        m_id2index[e.id()] = entity::invalid();
+        destroy_properties(e);
+        swap_current_and_last_entity(e);
+        remove_last_entity(e);
     }
 
     inline bool valid(entity e) const
     {
-        return (e != entity::null()) && (m_id2index[e.id()] != entity::invalid());
+        return (e != entity::null()) && (m_id2index.at(e.id()) != entity::invalid());
     }
 
     inline void clear()
@@ -148,6 +144,30 @@ public:
     }
 
 private:
+    inline std::size_t create_new_id()
+    {
+        m_id2index.push_back(m_entities.size());
+        return (m_id2index.size()-1);
+    }
+
+    inline void swap_current_and_last_entity(entity e)
+    {
+        std::size_t index = m_id2index.at(e.id());
+        m_id2index.at(m_entities.back().id()) = index;
+        std::swap(m_entities.at(index), m_entities.back());
+    }
+
+    inline void remove_last_entity(entity e)
+    {
+        m_entities.pop_back();
+        m_id2index.at(e.id()) = entity::invalid();
+    }
+
+    inline void destroy_properties(entity e)
+    {
+        m_notifier->destroy(e);
+    }
+
     std::vector<std::size_t> m_id2index;
     StorageType m_entities;
     std::unique_ptr<notifier_> m_notifier;
@@ -266,34 +286,45 @@ std::size_t entity::invalid()
 // entity_system::notifier_ PIMPL
 struct entity_system::notifier_::impl {
 
+    impl() {
+        m_properties.reserve(64);
+    }
+
+    ~impl() {
+    }
+
     inline void attach(abstract_property &prop) {
-        m_properties.insert(&prop);
+        m_properties.push_back(&prop);
     }
 
     inline void dettach(abstract_property &prop)
     {
-        std::size_t items_erased{m_properties.erase(&prop)};
-        if(!items_erased)
+        if(!has_property(prop))
             throw std::runtime_error("can't dettach unattached property");
+        m_properties.erase(std::find(m_properties.begin(), m_properties.end(), &prop));
     }
 
     inline void create(entity_system::entity en) {
         for(auto prop : m_properties)
-            prop->create(en);
+            prop->on_create(en);
     }
 
     inline void destroy(entity_system::entity en) {
-        for(auto prop : m_properties)
-            prop->destroy(en);
+        // workaround to fix self association issues
+        std::for_each(m_properties.crbegin(), m_properties.crend(), [en](abstract_property * prop){
+            prop->on_destroy(en);
+        });
+        /*for(auto prop : m_properties)
+            prop->on_destroy(en);*/
     }
 
     inline void clear() {
         for(auto prop : m_properties)
-            prop->clear();
+            prop->on_clear();
     }
 
     inline bool has_property(abstract_property &prop) const {
-        return (m_properties.count(&prop) == 1);
+        return (std::count(m_properties.begin(), m_properties.end(), &prop) == 1);
     }
 
     inline std::size_t properties_size() const
@@ -302,7 +333,7 @@ struct entity_system::notifier_::impl {
     }
 
 private:
-    std::set<abstract_property*> m_properties;
+    std::vector<abstract_property*> m_properties;
 
 };
 
@@ -315,7 +346,6 @@ entity_system::notifier_::notifier_() :
 
 entity_system::notifier_::~notifier_()
 {
-
 }
 
 void entity_system::notifier_::attach(abstract_property &prop)

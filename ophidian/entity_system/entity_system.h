@@ -7,7 +7,6 @@ namespace ophidian {
 namespace entity_system {
 
 class abstract_property;
-
 class entity_system
 {
 public:
@@ -26,6 +25,7 @@ public:
         std::size_t id() const {
             return m_id;
         }
+
         static entity null();
         static std::size_t invalid();
 
@@ -40,14 +40,14 @@ public:
         notifier_();
         ~notifier_();
 
+        bool has_property(abstract_property &prop) const;
+        std::size_t properties_size() const;
+
         void attach(abstract_property& prop);
         void dettach(abstract_property& prop);
-        bool has_property(abstract_property &prop) const;
-
         void create(entity en);
         void destroy(entity en);
         void clear();
-        std::size_t properties_size() const;
 
     private:
         struct impl;

@@ -6,13 +6,7 @@
 
 using namespace ophidian::entity_system;
 
-using whole_composed_of_three_parts_fixture = association_fixture::whole_composed_of_three_parts_fixture<composition>;
-
-TEST_CASE_METHOD(whole_composed_of_three_parts_fixture, "composition: 'whole_composed_of_three_parts_fixture' test", "[composition]") {
-    REQUIRE( composite().size() == 1 );
-    REQUIRE( component().size() == 3 );
-    REQUIRE( relation().components_size(whole()) == 3 );
-}
+using whole_composed_of_three_parts_fixture = association_fixture::whole_composed_of_three_parts_fixture_plus_one_unattached_part<composition>;
 
 TEST_CASE_METHOD(whole_composed_of_three_parts_fixture, "composition: destroy whole, destroy parts", "[composition]") {
     composite().destroy(whole());
@@ -97,3 +91,93 @@ TEST_CASE_METHOD(self_composition_with_root_and_child_fixture, "compostition: se
     REQUIRE_THROWS( compo.components_size(child) );
 }
 
+
+TEST_CASE("composition: skeleton example", "[composition]") {
+    entity_system skeleton;
+    composition joints(skeleton, skeleton);
+
+    auto spine = skeleton.create();
+    auto skull = skeleton.create();
+    joints.attach_component(spine, skull);
+
+    const int RIGHT = 0;
+    const int LEFT = 1;
+
+    std::array<entity_system::entity, 2> collerball, arm1, arm2, hand, femur, lower_leg, foot;
+    std::array<std::array<entity_system::entity, 5>, 2> fingers, toes;
+    std::array<std::array<entity_system::entity, 12>, 2> ribs;
+
+    for(std::size_t i = 0; i < 2; ++i) // left and right sides
+    {
+        collerball[i] = skeleton.create();
+        joints.attach_component(spine, collerball[i]);
+
+        arm1[i] = skeleton.create();
+        joints.attach_component(collerball[i], arm1[i]);
+
+        arm2[i] = skeleton.create();
+        joints.attach_component(arm1[i], arm2[i]);
+
+        hand[i] = skeleton.create();
+        joints.attach_component(arm2[i], hand[i]);
+
+        fingers[i] = make_entities<5>(skeleton);
+        attach_component(joints, hand[i], fingers[i].begin(), fingers[i].end());
+
+        femur[i] = skeleton.create();
+        joints.attach_component(spine, femur[i]);
+
+        lower_leg[i] = skeleton.create();
+        joints.attach_component(femur[i], lower_leg[i]);
+
+        foot[i] = skeleton.create();
+        joints.attach_component(lower_leg[i], foot[i]);
+
+        toes[i] = make_entities<5>(skeleton);
+        attach_component(joints, foot[i], toes[i].begin(), toes[i].end());
+
+        ribs[i] = make_entities<12>(skeleton);
+        attach_component(joints, spine, ribs[i].begin(), ribs[i].end());
+    }
+
+    skeleton.destroy(arm1[RIGHT]);
+
+    REQUIRE( skeleton.valid(skull) );
+    REQUIRE( skeleton.valid(spine) );
+
+    REQUIRE( skeleton.valid(collerball[RIGHT]) );
+    REQUIRE( !skeleton.valid(arm2[RIGHT]) );
+    REQUIRE( !skeleton.valid(arm1[RIGHT]) );
+    REQUIRE( !skeleton.valid(hand[RIGHT]) );
+    REQUIRE( !skeleton.valid(fingers[RIGHT].at(0)) );
+    REQUIRE( !skeleton.valid(fingers[RIGHT].at(1)) );
+    REQUIRE( !skeleton.valid(fingers[RIGHT].at(2)) );
+    REQUIRE( !skeleton.valid(fingers[RIGHT].at(3)) );
+    REQUIRE( !skeleton.valid(fingers[RIGHT].at(4)) );
+    REQUIRE( skeleton.valid(femur[RIGHT]) );
+    REQUIRE( skeleton.valid(lower_leg[RIGHT]) );
+    REQUIRE( skeleton.valid(foot[RIGHT]) );
+    REQUIRE( skeleton.valid(toes[RIGHT].at(0)) );
+    REQUIRE( skeleton.valid(toes[RIGHT].at(1)) );
+    REQUIRE( skeleton.valid(toes[RIGHT].at(2)) );
+    REQUIRE( skeleton.valid(toes[RIGHT].at(3)) );
+    REQUIRE( skeleton.valid(toes[RIGHT].at(4)) );
+
+    REQUIRE( skeleton.valid(collerball[LEFT]) );
+    REQUIRE( skeleton.valid(arm2[LEFT]) );
+    REQUIRE( skeleton.valid(arm1[LEFT]) );
+    REQUIRE( skeleton.valid(hand[LEFT]) );
+    REQUIRE( skeleton.valid(fingers[LEFT].at(0)) );
+    REQUIRE( skeleton.valid(fingers[LEFT].at(1)) );
+    REQUIRE( skeleton.valid(fingers[LEFT].at(2)) );
+    REQUIRE( skeleton.valid(fingers[LEFT].at(3)) );
+    REQUIRE( skeleton.valid(fingers[LEFT].at(4)) );
+    REQUIRE( skeleton.valid(femur[LEFT]) );
+    REQUIRE( skeleton.valid(lower_leg[LEFT]) );
+    REQUIRE( skeleton.valid(foot[LEFT]) );
+    REQUIRE( skeleton.valid(toes[LEFT].at(0)) );
+    REQUIRE( skeleton.valid(toes[LEFT].at(1)) );
+    REQUIRE( skeleton.valid(toes[LEFT].at(2)) );
+    REQUIRE( skeleton.valid(toes[LEFT].at(3)) );
+    REQUIRE( skeleton.valid(toes[LEFT].at(4)) );
+}

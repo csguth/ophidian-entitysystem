@@ -11,8 +11,8 @@ class aggregation : public association
 public:
     aggregation(const entity_system & composite, entity_system & component);
     virtual ~aggregation();
-    void destroy(entity_system::entity en);
-    void clear();
+    void on_destroy(entity_system::entity en);
+    void on_clear();
 };
 
 }
