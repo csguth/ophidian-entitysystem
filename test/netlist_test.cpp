@@ -193,11 +193,201 @@ TEST_CASE("netlist: cell & pins composition", "[netlist]")
     REQUIRE( std::count(nl.pins_of(cell).begin(), nl.pins_of(cell).end(), p4) == 0 ); // must not contain p4
 
     nl.destroy(cell);
-
     REQUIRE( !nl.valid(p1) );
     REQUIRE( !nl.valid(p2) );
     REQUIRE( !nl.valid(p3) );
 
     REQUIRE( nl.valid(p4) );
     REQUIRE( nl.size<Pin>() == 1 ); // must remain p4
+}
+
+using PI = netlist::primary_input;
+
+TEST_CASE("netlist: PI", "[netlist]")
+{
+    netlist::netlist nl;
+
+    REQUIRE( nl.size<PI>() == 0 );
+
+    Pin inp1 = nl.create<Pin>();
+    Pin u1_a = nl.create<Pin>();
+
+    REQUIRE( !nl.is_PI(inp1) );
+    REQUIRE( !nl.is_PI(u1_a) );
+
+    PI inp1_PI = nl.make_PI(inp1);
+
+    REQUIRE( nl.pin_of(inp1_PI) == inp1 );
+    REQUIRE( nl.valid(inp1_PI) );
+    REQUIRE( nl.is_PI(inp1) );
+    REQUIRE( !nl.is_PI(u1_a) );
+    REQUIRE( nl.size<PI>() == 1 );
+    REQUIRE( nl.PI_of(inp1) == inp1_PI );
+
+    nl.destroy(inp1_PI);
+
+    REQUIRE( !nl.is_PI(inp1) );
+    REQUIRE( nl.size<PI>() == 0 );
+    REQUIRE( !nl.valid(inp1_PI) );
+
+    REQUIRE( static_cast<entity_system::entity_system::entity>(nl.PI_of(inp1)) == NULL_entity );
+    inp1_PI = nl.make_PI(inp1);
+
+    nl.destroy(inp1);
+
+    REQUIRE( !nl.valid(inp1) );
+    REQUIRE( !nl.valid(inp1_PI) );
+
+}
+
+
+TEST_CASE("netlist: property for PIs, like input delay", "[netlist]")
+{
+    netlist::netlist nl;
+    Pin inp1, inp2, u1_a;
+    PI Inp1, Inp2;
+
+    Inp1 = nl.make_PI(inp1 = nl.create<Pin>());
+    Inp2 = nl.make_PI(inp2 = nl.create<Pin>());
+    u1_a = nl.create<Pin>();
+
+    auto input_delays = nl.make_property<PI, double>();
+
+    input_delays[Inp1] = 0.0;
+    input_delays[Inp2] = 2.0;
+
+    REQUIRE( Approx(input_delays[Inp1]) == 0.0 );
+    REQUIRE( Approx(input_delays[Inp2]) == 2.0 );
+
+}
+
+
+using PO = netlist::primary_output;
+
+TEST_CASE("netlist: PO", "[netlist]")
+{
+    netlist::netlist nl;
+
+    REQUIRE( nl.size<PO>() == 0 );
+
+    Pin out1 = nl.create<Pin>();
+    Pin u1_a = nl.create<Pin>();
+
+    REQUIRE( !nl.is_PO(out1) );
+    REQUIRE( !nl.is_PO(u1_a) );
+
+    PO out1_PO = nl.make_PO(out1);
+
+    REQUIRE( nl.pin_of(out1_PO) == out1 );
+    REQUIRE( nl.valid(out1_PO) );
+    REQUIRE( nl.is_PO(out1) );
+    REQUIRE( !nl.is_PO(u1_a) );
+    REQUIRE( nl.size<PO>() == 1 );
+    REQUIRE( nl.PO_of(out1) == out1_PO );
+
+    nl.destroy(out1_PO);
+
+    REQUIRE( !nl.is_PO(out1) );
+    REQUIRE( nl.size<PO>() == 0 );
+    REQUIRE( !nl.valid(out1_PO) );
+
+    REQUIRE( static_cast<entity_system::entity_system::entity>(nl.PO_of(out1)) == NULL_entity );
+    out1_PO = nl.make_PO(out1);
+
+    nl.destroy(out1);
+
+    REQUIRE( !nl.valid(out1) );
+    REQUIRE( !nl.valid(out1_PO) );
+
+}
+
+TEST_CASE("netlist: property for POs, like output loads", "[netlist]")
+{
+    netlist::netlist nl;
+    Pin out1, out2, u1_a;
+    PO Out1, Out2;
+
+    Out1 = nl.make_PO(out1 = nl.create<Pin>());
+    Out2 = nl.make_PO(out2 = nl.create<Pin>());
+    u1_a = nl.create<Pin>();
+
+    auto output_loads = nl.make_property<PO, double>();
+
+    output_loads[Out1] = 0.0;
+    output_loads[Out2] = 2.0;
+
+    REQUIRE( Approx(output_loads[Out1]) == 0.0 );
+    REQUIRE( Approx(output_loads[Out2]) == 2.0 );
+
+}
+
+TEST_CASE("netlist: make_PO from FF:d pin", "[netlist]")
+{
+    netlist::netlist nl;
+    Cell f1 = nl.create<Cell>();
+    Pin f1d, f1q, f1ck;
+    nl.attach(f1, f1d = nl.create<Pin>());
+    nl.attach(f1, f1q = nl.create<Pin>());
+    nl.attach(f1, f1ck = nl.create<Pin>());
+
+    Pin out = nl.create<Pin>();
+
+    auto PO_slacks = nl.make_property<PO, double>();
+
+    auto f1d_PO = nl.make_PO(f1d);
+    auto out_PO = nl.make_PO(out);
+
+    PO_slacks[f1d_PO] = -1.0;
+    PO_slacks[out_PO] = -2.0;
+
+    double TNS = std::accumulate(PO_slacks.begin(), PO_slacks.end(), 0.0);
+
+    REQUIRE( Approx(TNS) == -3.0 );
+
+}
+
+TEST_CASE("netlist: bounds", "[netlist]")
+{
+    netlist::netlist nl; // create netlist
+    Cell u1;
+    Pin inp1, inp2, u1a, u1b, u1o, out;
+    Net inp1_net, inp2_net, out_net;
+
+    u1 = nl.create<Cell>(); // create cell u1
+    nl.attach(u1, u1a = nl.create<Pin>()); // create pin u1:a, and attach it to cell u1
+    nl.attach(u1, u1b = nl.create<Pin>()); // create pin u1:b, and attach it to cell u1
+    nl.attach(u1, u1o = nl.create<Pin>()); // create pin u1:o, and attach it to cell u1
+
+    nl.make_PI(inp1 = nl.create<Pin>()); // make inp1 a PI
+    nl.make_PI(inp2 = nl.create<Pin>()); // make inp2 a PI
+    nl.make_PO(out = nl.create<Pin>()); // make out a PO
+
+    nl.connect(inp1_net = nl.create<Net>(), inp1); // create net inp1 and connect pin inp1 to it
+    nl.connect(inp2_net = nl.create<Net>(), inp2); // create net inp2 and connect pin inp2 to it
+    nl.connect(out_net = nl.create<Net>(), u1o); // create net out and connect pin out to it
+
+    nl.connect(inp1_net, u1a); // connect pin u1:a to net inp1
+    nl.connect(inp2_net, u1b); // connect pin u1:b to net inp2
+    nl.connect(out_net, u1o); // connect pin u1:o to net out
+
+    REQUIRE( nl.size<PI>() == 2 );
+    REQUIRE( nl.size<PO>() == 1 );
+    REQUIRE( nl.size<Cell>() == 1 );
+    REQUIRE( nl.size<Net>() == 3 );
+    REQUIRE( nl.size<Pin>() == 2/*PI*/ + 1/*PO*/ + 3/*cell u1*/ );
+
+    REQUIRE( std::count(nl.bounds<PI>().begin(), nl.bounds<PI>().end(), nl.PI_of(inp1)) == 1 );
+    REQUIRE( std::count(nl.bounds<PI>().begin(), nl.bounds<PI>().end(), nl.PI_of(inp2)) == 1 );
+    REQUIRE( std::count(nl.bounds<PO>().begin(), nl.bounds<PO>().end(), nl.PO_of(out)) == 1 );
+    REQUIRE( std::count(nl.bounds<Net>().begin(), nl.bounds<Net>().end(), inp1_net) == 1 );
+    REQUIRE( std::count(nl.bounds<Net>().begin(), nl.bounds<Net>().end(), inp2_net) == 1 );
+    REQUIRE( std::count(nl.bounds<Net>().begin(), nl.bounds<Net>().end(), out_net) == 1 );
+    REQUIRE( std::count(nl.bounds<Cell>().begin(), nl.bounds<Cell>().end(), u1) == 1 );
+    REQUIRE( std::count(nl.bounds<Pin>().begin(), nl.bounds<Pin>().end(), inp1) == 1 );
+    REQUIRE( std::count(nl.bounds<Pin>().begin(), nl.bounds<Pin>().end(), inp2) == 1 );
+    REQUIRE( std::count(nl.bounds<Pin>().begin(), nl.bounds<Pin>().end(), u1a) == 1 );
+    REQUIRE( std::count(nl.bounds<Pin>().begin(), nl.bounds<Pin>().end(), u1b) == 1 );
+    REQUIRE( std::count(nl.bounds<Pin>().begin(), nl.bounds<Pin>().end(), u1o) == 1 );
+    REQUIRE( std::count(nl.bounds<Pin>().begin(), nl.bounds<Pin>().end(), out) == 1 );
+
 }
